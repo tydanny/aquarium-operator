@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- fun_v1alpha1_aquarium.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,14 @@
+apiVersion: fun.tydanny.com/v1alpha1
+kind: Aquarium
+metadata:
+  labels:
+    app.kubernetes.io/name: aquarium
+    app.kubernetes.io/instance: aquarium-sample
+    app.kubernetes.io/part-of: aquarium-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: aquarium-operator
+  name: aquarium-sample
+spec:
+  num_tanks: 1
+  image: wernight/funbox
+  command: asciiquarium
