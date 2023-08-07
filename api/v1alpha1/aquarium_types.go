@@ -27,8 +27,6 @@ type AquariumSpec struct {
 	// +kubebuilder:default=pier39
 	Location string `json:"location,omitempty"`
 	Image    string `json:"image,omitempty"`
-	// +kubebuilder:default=asciiquarium
-	Command string `json:"command,omitempty"`
 }
 
 // AquariumStatus defines the observed state of Aquarium

@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -128,21 +127,9 @@ func (r *AquariumReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func newDeployment(aquarium *funv1alpha1.Aquarium) *appsv1.Deployment {
 	return &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: appsv1.SchemeGroupVersion.String(),
-			Kind:       "Deployment",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      aquarium.Name,
 			Namespace: aquarium.Spec.Location,
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         aquarium.APIVersion,
-				Kind:               aquarium.Kind,
-				Name:               aquarium.Name,
-				UID:                aquarium.UID,
-				Controller:         pointer.Bool(true),
-				BlockOwnerDeletion: pointer.Bool(true),
-			}},
 			Labels: map[string]string{
 				AppKey: AquariumValue,
 			},
@@ -162,20 +149,10 @@ func newDeployment(aquarium *funv1alpha1.Aquarium) *appsv1.Deployment {
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:            "aquarium",
-						Image:           aquarium.Spec.Image,
-						Command:         []string{},
-						ImagePullPolicy: corev1.PullIfNotPresent,
+						Name:    "aquarium",
+						Image:   aquarium.Spec.Image,
+						Command: []string{"sleep", "10000"},
 					}},
-				},
-			},
-			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.RollingUpdateDeploymentStrategyType,
-				RollingUpdate: &appsv1.RollingUpdateDeployment{
-					MaxSurge: &intstr.IntOrString{
-						Type:   0,
-						IntVal: 1,
-					},
 				},
 			},
 		},

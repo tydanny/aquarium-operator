@@ -1,7 +1,8 @@
 
 # Image URL to use all building/pushing image targets
-IMG_TAG := $(shell openssl rand -hex 5)
-IMG ?= tychristensen97/aquarium-operator:$(IMG_TAG)
+# IMG_TAG := $(shell openssl rand -hex 5)
+# IMG ?= tychristensen97/aquarium-operator:$(IMG_TAG)
+IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.27.1
 

@@ -11,4 +11,3 @@ metadata:
 spec:
   num_tanks: 1
   image: wernight/funbox
-  command: asciiquarium

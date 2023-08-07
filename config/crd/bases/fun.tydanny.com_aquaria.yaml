@@ -44,9 +44,6 @@ spec:
           spec:
             description: AquariumSpec defines the desired state of Aquarium
             properties:
-              command:
-                default: asciiquarium
-                type: string
               image:
                 type: string
               location:

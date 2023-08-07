@@ -4,5 +4,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: tychristensen97/aquarium-operator
-  newTag: f9b6f40d9f
+  newName: docker.io/library/controller
+  newTag: latest
