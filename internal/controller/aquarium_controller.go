@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -111,6 +112,27 @@ func (r *AquariumReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if err := r.Apply(ctx, desiredDeploy); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	aquariumFinalizer := "fun.tydanny.com/aquariumCleanup"
+	if aquarium.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(&aquarium, aquariumFinalizer) {
+			controllerutil.AddFinalizer(&aquarium, aquariumFinalizer)
+			if err := r.Update(ctx, &aquarium); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(&aquarium, aquariumFinalizer) {
+			if err := r.Delete(ctx, &aquariumNamespace); client.IgnoreNotFound(err) != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		controllerutil.RemoveFinalizer(&aquarium, aquariumFinalizer)
+		if err := r.Update(ctx, &aquarium); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
