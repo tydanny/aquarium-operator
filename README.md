@@ -6,6 +6,16 @@ This is an example Kubernetes operator that builds an aquarium in Kubernetes usi
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
+### Setting up a Minikube Cluster
+1. `brew install minikube`
+2. `minikube start`
+>**Note:** The following command will give you a command to run to point your shell to minikube's docker-daemon. You will need to do this if you are not pushing the image to an image registry. 
+3. `minikube docker-env`
+>**For example:** \
+> To point your shell to minikube's docker-daemon, run: \
+> minikube -p minikube docker-env | source
+
+
 ### Running on the cluster
 1. Install Instances of Custom Resources:
 
