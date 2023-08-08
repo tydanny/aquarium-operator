@@ -13,3 +13,14 @@ const (
 
 // Field owner
 const AquariumOperator = "aquarium-operator"
+
+// Condition Types
+const (
+	AquariumReady = "aquariumReady"
+)
+
+// Condition Reasons
+const (
+	AquariumIsHealthy   = "AquariumIsHealthy"
+	AquariumIsUnHealthy = "AquariumIsUnHealthy"
+)

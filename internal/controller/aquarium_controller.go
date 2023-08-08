@@ -21,6 +21,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
@@ -70,8 +71,10 @@ func (r *AquariumReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if aquariumDeploy.Status.ReadyReplicas == aquarium.Spec.NumTanks {
+		setUnHealthyCondition(&aquarium)
 		aquarium.Status.FishHealth = funv1alpha1.Healthy
 	} else {
+		setHealthyCondition(&aquarium)
 		aquarium.Status.FishHealth = funv1alpha1.Unhealthy
 	}
 
@@ -103,6 +106,26 @@ func (r *AquariumReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&funv1alpha1.Aquarium{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(AquariumLabelPredicate)).
 		Complete(r)
+}
+
+func setHealthyCondition(aquarium *funv1alpha1.Aquarium) {
+	apimeta.SetStatusCondition(&aquarium.Status.Conditions, metav1.Condition{
+		Type:               AquariumReady,
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: aquarium.Generation,
+		Reason:             AquariumIsHealthy,
+		Message:            "The aquarium is ready!",
+	})
+}
+
+func setUnHealthyCondition(aquarium *funv1alpha1.Aquarium) {
+	apimeta.SetStatusCondition(&aquarium.Status.Conditions, metav1.Condition{
+		Type:               AquariumReady,
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: aquarium.Generation,
+		Reason:             AquariumIsUnHealthy,
+		Message:            "The aquarium is not ready :(",
+	})
 }
 
 func newDeployment(aquarium *funv1alpha1.Aquarium) *appsv1.Deployment {
