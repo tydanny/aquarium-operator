@@ -15,7 +15,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.num_tanks
+    - jsonPath: .status.num_tanks_ready
       name: Tanks
       type: integer
     - jsonPath: .status.fish_health
@@ -44,8 +44,6 @@ spec:
           spec:
             description: AquariumSpec defines the desired state of Aquarium
             properties:
-              image:
-                type: string
               location:
                 default: pier39
                 type: string

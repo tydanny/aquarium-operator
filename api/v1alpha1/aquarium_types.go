@@ -26,7 +26,6 @@ type AquariumSpec struct {
 	NumTanks int32 `json:"num_tanks,omitempty"`
 	// +kubebuilder:default=pier39
 	Location string `json:"location,omitempty"`
-	Image    string `json:"image,omitempty"`
 }
 
 // AquariumStatus defines the observed state of Aquarium
@@ -40,15 +39,16 @@ type AquariumStatus struct {
 type FishHealth string
 
 const (
-	Healthy   FishHealth = "Healthy"
-	Unhealthy FishHealth = "Unhealthy"
-	Unknown   FishHealth = "Unknown"
+	Healthy       FishHealth = "Healthy"
+	KindOfHealthy FishHealth = "Kinda"
+	Unhealthy     FishHealth = "Unhealthy"
+	Unknown       FishHealth = "Unknown"
 )
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:validation:Required
-// +kubebuilder:printcolumn:name="Tanks",type="integer",JSONPath=".status.num_tanks",priority=0
+// +kubebuilder:printcolumn:name="Tanks",type="integer",JSONPath=".status.num_tanks_ready",priority=0
 // +kubebuilder:printcolumn:name="Fish Health",type="string",JSONPath=".status.fish_health",priority=0
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority=0
 

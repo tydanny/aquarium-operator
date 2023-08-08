@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aquariums
+---
 apiVersion: fun.tydanny.com/v1alpha1
 kind: Aquarium
 metadata:
@@ -10,4 +15,3 @@ metadata:
   name: aquarium-of-the-bay
 spec:
   num_tanks: 1
-  image: wernight/funbox

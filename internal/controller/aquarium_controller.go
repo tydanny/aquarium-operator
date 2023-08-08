@@ -18,20 +18,15 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -86,53 +81,17 @@ func (r *AquariumReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Error(err, "failed to update aquarium status")
 	}
 
-	// Reach the Aquariums desired state
-	aquariumNamespace := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: aquarium.Spec.Location,
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         aquarium.APIVersion,
-				Kind:               aquarium.Kind,
-				Name:               aquarium.Name,
-				UID:                aquarium.UID,
-				Controller:         pointer.Bool(true),
-				BlockOwnerDeletion: pointer.Bool(true),
-			}},
-			Labels: map[string]string{
-				AppKey: AquariumValue,
-			},
-		},
-	}
-
-	if err := r.Create(ctx, &aquariumNamespace); client.IgnoreAlreadyExists(err) != nil {
-		return ctrl.Result{}, err
-	}
-
 	desiredDeploy := newDeployment(&aquarium)
 
-	if err := r.Apply(ctx, desiredDeploy); err != nil {
+	// Apply the desired deployment using server side apply
+	if err := r.Patch(
+		ctx,
+		desiredDeploy,
+		client.Apply,
+		client.ForceOwnership,
+		client.FieldOwner(AquariumOperator),
+	); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	aquariumFinalizer := "fun.tydanny.com/aquariumCleanup"
-	if aquarium.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(&aquarium, aquariumFinalizer) {
-			controllerutil.AddFinalizer(&aquarium, aquariumFinalizer)
-			if err := r.Update(ctx, &aquarium); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	} else {
-		if controllerutil.ContainsFinalizer(&aquarium, aquariumFinalizer) {
-			if err := r.Delete(ctx, &aquariumNamespace); client.IgnoreNotFound(err) != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		controllerutil.RemoveFinalizer(&aquarium, aquariumFinalizer)
-		if err := r.Update(ctx, &aquarium); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	return ctrl.Result{}, nil
@@ -143,18 +102,30 @@ func (r *AquariumReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&funv1alpha1.Aquarium{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(AquariumLabelPredicate)).
-		Owns(&corev1.Namespace{}, builder.WithPredicates(AquariumLabelPredicate)).
 		Complete(r)
 }
 
 func newDeployment(aquarium *funv1alpha1.Aquarium) *appsv1.Deployment {
 	return &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      aquarium.Name,
-			Namespace: aquarium.Spec.Location,
+			Namespace: aquarium.Namespace,
 			Labels: map[string]string{
-				AppKey: AquariumValue,
+				AppKey:    AquariumValue,
+				LocatedAt: aquarium.Spec.Location,
 			},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion:         aquarium.APIVersion,
+				Kind:               aquarium.Kind,
+				Name:               aquarium.Name,
+				UID:                aquarium.UID,
+				Controller:         pointer.Bool(true),
+				BlockOwnerDeletion: pointer.Bool(true),
+			}},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: pointer.Int32(aquarium.Spec.NumTanks),
@@ -172,45 +143,11 @@ func newDeployment(aquarium *funv1alpha1.Aquarium) *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:    "aquarium",
-						Image:   aquarium.Spec.Image,
+						Image:   "wernight/funbox",
 						Command: []string{"sleep", "10000"},
 					}},
 				},
 			},
 		},
 	}
-}
-
-// Apply uses server side apply to create Kubernetes objects
-func (r *AquariumReconciler) Apply(ctx context.Context, in client.Object, opts ...client.PatchOption) error {
-	unstructured, err := getUnstructuredFromObject(r.Scheme, in)
-	if err != nil {
-		return fmt.Errorf("failed to get unstructured from object: %w", err)
-	}
-
-	// In K8s v1.25, server-side apply validation is enabled. The status field is not allowed when patching a resource.
-	delete(unstructured.Object, "status")
-	return r.Patch(ctx, unstructured, client.Apply, client.ForceOwnership, client.FieldOwner("aquarium-operator"))
-}
-
-func getUnstructuredFromObject(scheme *runtime.Scheme, in client.Object) (*unstructured.Unstructured, error) {
-	gvk, err := apiutil.GVKForObject(in, scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	js, err := json.Marshal(in)
-	if err != nil {
-		return nil, err
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(js, &data); err != nil {
-		return nil, err
-	}
-
-	u := &unstructured.Unstructured{Object: data}
-	u.SetGroupVersionKind(gvk)
-
-	return u, nil
 }
