@@ -10,6 +10,18 @@
       "request": "launch",
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/main.go"
+    },
+    {
+      "name": "Run Envtest",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}/internal/controller",
+      "env": {
+        "TEST_TIMEOUT": "100",
+        "TEST_DURATION": "",
+        "TEST_INTERVAL": "",
+      },
     }
   ]
 }
