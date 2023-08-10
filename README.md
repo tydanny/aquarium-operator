@@ -26,7 +26,7 @@ kubectl apply -f config/samples/
 2. Build and push your image to the location specified by `IMG`:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/aquarium-operator:tag
+make docker-build IMG=<some-registry>/aquarium-operator:tag
 ```
 
 3. Deploy the controller to the cluster with the image specified by `IMG`:
